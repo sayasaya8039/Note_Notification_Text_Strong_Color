@@ -7,6 +7,14 @@ const DEFAULTS = {
   textColor: '#1a1a1a'
 };
 
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const toggleEnabled = document.getElementById('toggle-enabled');
   const fontWeightSlider = document.getElementById('fontWeight');
@@ -18,6 +26,36 @@ document.addEventListener('DOMContentLoaded', () => {
   const previewArea = document.getElementById('preview-area');
   const resetBtn = document.getElementById('reset-btn');
 
+  // プレビューを更新する
+  function updatePreview() {
+    previewArea.style.fontWeight = fontWeightSlider.value;
+    previewArea.style.fontSize = fontSizeSlider.value + 'px';
+    previewArea.style.color = textColorPicker.value;
+  }
+
+  // 現在のUI値から設定オブジェクトを構築する
+  function getCurrentSettings() {
+    return {
+      enabled: toggleEnabled.checked,
+      fontWeight: parseInt(fontWeightSlider.value, 10),
+      fontSize: parseInt(fontSizeSlider.value, 10),
+      textColor: textColorPicker.value
+    };
+  }
+
+  // ストレージに保存する（エラーチェック付き）
+  function saveToStorage() {
+    const settings = getCurrentSettings();
+    chrome.storage.sync.set(settings, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Settings save failed:', chrome.runtime.lastError.message);
+      }
+    });
+  }
+
+  // デバウンスされた保存（300ms）
+  const debouncedSave = debounce(saveToStorage, 300);
+
   // 設定を読み込む
   function loadSettings() {
     chrome.storage.sync.get(DEFAULTS, (settings) => {
@@ -28,45 +66,31 @@ document.addEventListener('DOMContentLoaded', () => {
       fontSizeValue.textContent = settings.fontSize + 'px';
       textColorPicker.value = settings.textColor;
       textColorValue.textContent = settings.textColor;
-      updatePreview(settings);
+      updatePreview();
     });
   }
 
-  // プレビューを更新する
-  function updatePreview(settings) {
-    previewArea.style.fontWeight = settings.fontWeight;
-    previewArea.style.fontSize = settings.fontSize + 'px';
-    previewArea.style.color = settings.textColor;
-  }
-
-  // 設定を保存する
-  function saveSettings() {
-    const settings = {
-      enabled: toggleEnabled.checked,
-      fontWeight: parseInt(fontWeightSlider.value, 10),
-      fontSize: parseInt(fontSizeSlider.value, 10),
-      textColor: textColorPicker.value
-    };
-    chrome.storage.sync.set(settings);
-    updatePreview(settings);
-  }
-
   // イベントリスナー設定
-  toggleEnabled.addEventListener('change', saveSettings);
+  toggleEnabled.addEventListener('change', () => {
+    saveToStorage();
+  });
 
   fontWeightSlider.addEventListener('input', () => {
     fontWeightValue.textContent = fontWeightSlider.value;
-    saveSettings();
+    updatePreview();
+    debouncedSave();
   });
 
   fontSizeSlider.addEventListener('input', () => {
     fontSizeValue.textContent = fontSizeSlider.value + 'px';
-    saveSettings();
+    updatePreview();
+    debouncedSave();
   });
 
   textColorPicker.addEventListener('input', () => {
     textColorValue.textContent = textColorPicker.value;
-    saveSettings();
+    updatePreview();
+    debouncedSave();
   });
 
   // リセットボタン
