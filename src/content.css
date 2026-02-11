@@ -1,0 +1,98 @@
+/* Note Notification Text Strong Color - Content Styles */
+
+/* CSS Custom Properties for dynamic control from content.js */
+:root {
+  --nnts-font-weight: 600;
+  --nnts-font-size: 14px;
+  --nnts-text-color: #1a1a1a;
+  --nnts-line-height: 1.6;
+  --nnts-letter-spacing: 0.02em;
+}
+
+/* ===========================================
+   Notification Panel Container
+   =========================================== */
+[class*="notifPanel"],
+[class*="NotifPanel"],
+[class*="notificationPanel"] {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* ===========================================
+   Notification Items
+   =========================================== */
+[class*="notifItem"],
+[class*="NotifItem"],
+[class*="notificationItem"] {
+  font-weight: var(--nnts-font-weight) !important;
+  font-size: var(--nnts-font-size) !important;
+  color: var(--nnts-text-color) !important;
+  line-height: var(--nnts-line-height) !important;
+  letter-spacing: var(--nnts-letter-spacing) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* ===========================================
+   Notification Text / Body / Content
+   =========================================== */
+[class*="notifText"],
+[class*="notifBody"],
+[class*="notifContent"],
+[class*="NotifText"],
+[class*="NotifBody"],
+[class*="NotifContent"] {
+  font-weight: var(--nnts-font-weight) !important;
+  font-size: var(--nnts-font-size) !important;
+  color: var(--nnts-text-color) !important;
+  line-height: var(--nnts-line-height) !important;
+  letter-spacing: var(--nnts-letter-spacing) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* ===========================================
+   Links, paragraphs, spans inside notification panels
+   =========================================== */
+[class*="notifPanel"] a,
+[class*="NotifPanel"] a,
+[class*="notificationPanel"] a,
+[class*="notifPanel"] p,
+[class*="NotifPanel"] p,
+[class*="notificationPanel"] p,
+[class*="notifPanel"] span,
+[class*="NotifPanel"] span,
+[class*="notificationPanel"] span {
+  font-weight: var(--nnts-font-weight) !important;
+  font-size: var(--nnts-font-size) !important;
+  color: var(--nnts-text-color) !important;
+  line-height: var(--nnts-line-height) !important;
+  letter-spacing: var(--nnts-letter-spacing) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}
+
+/* Links inside notification items */
+[class*="notifItem"] a,
+[class*="NotifItem"] a,
+[class*="notificationItem"] a,
+[class*="notifItem"] p,
+[class*="NotifItem"] p,
+[class*="notificationItem"] p,
+[class*="notifItem"] span,
+[class*="NotifItem"] span,
+[class*="notificationItem"] span {
+  font-weight: var(--nnts-font-weight) !important;
+  font-size: var(--nnts-font-size) !important;
+  color: var(--nnts-text-color) !important;
+  line-height: var(--nnts-line-height) !important;
+  letter-spacing: var(--nnts-letter-spacing) !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+}

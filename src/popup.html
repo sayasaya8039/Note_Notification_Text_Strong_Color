@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Note通知テキスト強調</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <header class="header">
+      <div class="header-icon">🔔</div>
+      <h1 class="header-title">Note通知テキスト強調</h1>
+    </header>
+
+    <!-- 有効/無効トグル -->
+    <div class="setting-row">
+      <span class="setting-label">拡張機能を有効にする</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="toggle-enabled" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- フォント太さスライダー -->
+    <div class="setting-group">
+      <div class="setting-header">
+        <span class="setting-label">フォント太さ</span>
+        <span class="setting-value" id="fontWeight-value">600</span>
+      </div>
+      <input type="range" id="fontWeight" class="custom-slider" min="400" max="900" step="100" value="600">
+    </div>
+
+    <!-- フォントサイズスライダー -->
+    <div class="setting-group">
+      <div class="setting-header">
+        <span class="setting-label">フォントサイズ</span>
+        <span class="setting-value" id="fontSize-value">14px</span>
+      </div>
+      <input type="range" id="fontSize" class="custom-slider" min="12" max="20" step="1" value="14">
+    </div>
+
+    <!-- テキストカラーピッカー -->
+    <div class="setting-row">
+      <span class="setting-label">テキストカラー</span>
+      <div class="color-picker-wrapper">
+        <input type="color" id="textColor" value="#1a1a1a" class="color-picker">
+        <span class="color-value" id="textColor-value">#1a1a1a</span>
+      </div>
+    </div>
+
+    <!-- プレビューエリア -->
+    <div class="preview-section">
+      <span class="preview-label">プレビュー</span>
+      <div class="preview-area" id="preview-area">
+        これはサンプルの通知テキストです。設定がリアルタイムに反映されます。
+      </div>
+    </div>
+
+    <!-- リセットボタン -->
+    <button id="reset-btn" class="reset-btn">デフォルトに戻す</button>
+
+    <!-- フッター -->
+    <footer class="footer">v1.0.0</footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
