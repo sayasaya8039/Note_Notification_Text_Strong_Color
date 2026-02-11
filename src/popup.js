@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const previewArea = document.getElementById('preview-area');
   const resetBtn = document.getElementById('reset-btn');
 
+  // 未保存の変更があるかどうかのフラグ
+  let hasPendingChanges = false;
+
   // プレビューを更新する
   function updatePreview() {
     previewArea.style.fontWeight = fontWeightSlider.value;
@@ -49,16 +52,30 @@ document.addEventListener('DOMContentLoaded', () => {
     chrome.storage.sync.set(settings, () => {
       if (chrome.runtime.lastError) {
         console.error('Settings save failed:', chrome.runtime.lastError.message);
+      } else {
+        console.log('Settings saved:', settings);
+        hasPendingChanges = false;
       }
     });
   }
 
-  // デバウンスされた保存（300ms）
-  const debouncedSave = debounce(saveToStorage, 300);
+  // 未保存の変更をフラッシュする
+  function flushPendingChanges() {
+    if (hasPendingChanges) {
+      saveToStorage();
+    }
+  }
+
+  // デバウンスされた保存（150ms - ポップアップが閉じられる前に保存されるよう短縮）
+  const debouncedSave = debounce(saveToStorage, 150);
 
   // 設定を読み込む
   function loadSettings() {
     chrome.storage.sync.get(DEFAULTS, (settings) => {
+      if (chrome.runtime.lastError) {
+        console.error('Settings load failed:', chrome.runtime.lastError.message);
+        return;
+      }
       toggleEnabled.checked = settings.enabled;
       fontWeightSlider.value = settings.fontWeight;
       fontWeightValue.textContent = settings.fontWeight;
@@ -70,6 +87,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ポップアップが閉じられる直前に未保存の設定をフラッシュする
+  window.addEventListener('beforeunload', flushPendingChanges);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushPendingChanges();
+    }
+  });
+
   // イベントリスナー設定
   toggleEnabled.addEventListener('change', () => {
     saveToStorage();
@@ -78,24 +103,45 @@ document.addEventListener('DOMContentLoaded', () => {
   fontWeightSlider.addEventListener('input', () => {
     fontWeightValue.textContent = fontWeightSlider.value;
     updatePreview();
+    hasPendingChanges = true;
     debouncedSave();
+  });
+
+  fontWeightSlider.addEventListener('change', () => {
+    flushPendingChanges();
   });
 
   fontSizeSlider.addEventListener('input', () => {
     fontSizeValue.textContent = fontSizeSlider.value + 'px';
     updatePreview();
+    hasPendingChanges = true;
     debouncedSave();
+  });
+
+  fontSizeSlider.addEventListener('change', () => {
+    flushPendingChanges();
   });
 
   textColorPicker.addEventListener('input', () => {
     textColorValue.textContent = textColorPicker.value;
     updatePreview();
+    hasPendingChanges = true;
     debouncedSave();
+  });
+
+  textColorPicker.addEventListener('change', () => {
+    flushPendingChanges();
   });
 
   // リセットボタン
   resetBtn.addEventListener('click', () => {
+    hasPendingChanges = false;
     chrome.storage.sync.set(DEFAULTS, () => {
+      if (chrome.runtime.lastError) {
+        console.error('Reset failed:', chrome.runtime.lastError.message);
+        return;
+      }
+      console.log('Settings reset to defaults');
       loadSettings();
     });
   });

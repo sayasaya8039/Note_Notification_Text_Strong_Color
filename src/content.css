@@ -12,7 +12,10 @@
 /* Notification Panel Containers */
 [class*="notifPanel"],
 [class*="NotifPanel"],
-[class*="notificationPanel"] {
+[class*="notificationPanel"],
+[class*="notif_panel"],
+[class*="Notif_Panel"],
+[data-testid*="notif"] {
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
   text-rendering: auto !important;
@@ -28,17 +31,31 @@
 [class*="NotifText"],
 [class*="NotifBody"],
 [class*="NotifContent"],
-[class*="notifPanel"] a, [class*="notifPanel"] p, [class*="notifPanel"] span,
-[class*="NotifPanel"] a, [class*="NotifPanel"] p, [class*="NotifPanel"] span,
-[class*="notificationPanel"] a, [class*="notificationPanel"] p, [class*="notificationPanel"] span,
-[class*="notifItem"] a, [class*="notifItem"] p, [class*="notifItem"] span,
-[class*="NotifItem"] a, [class*="NotifItem"] p, [class*="NotifItem"] span,
-[class*="notificationItem"] a, [class*="notificationItem"] p, [class*="notificationItem"] span {
-  font-weight: var(--nnts-font-weight) !important;
-  font-size: var(--nnts-font-size) !important;
-  color: var(--nnts-text-color) !important;
-  line-height: var(--nnts-line-height) !important;
-  letter-spacing: var(--nnts-letter-spacing) !important;
+[class*="notif_item"],
+[class*="Notif_Item"],
+[class*="notif_text"],
+[class*="notif_body"],
+[class*="notif_content"],
+[class*="Notif_Text"],
+[class*="Notif_Body"],
+[class*="Notif_Content"],
+[data-testid*="notifItem"],
+[data-testid*="notifText"],
+[data-testid*="notifContent"],
+[class*="notifPanel"] a, [class*="notifPanel"] p, [class*="notifPanel"] span, [class*="notifPanel"] div, [class*="notifPanel"] li, [class*="notifPanel"] time,
+[class*="NotifPanel"] a, [class*="NotifPanel"] p, [class*="NotifPanel"] span, [class*="NotifPanel"] div, [class*="NotifPanel"] li, [class*="NotifPanel"] time,
+[class*="notificationPanel"] a, [class*="notificationPanel"] p, [class*="notificationPanel"] span, [class*="notificationPanel"] div, [class*="notificationPanel"] li, [class*="notificationPanel"] time,
+[class*="notifItem"] a, [class*="notifItem"] p, [class*="notifItem"] span, [class*="notifItem"] div, [class*="notifItem"] li, [class*="notifItem"] time,
+[class*="NotifItem"] a, [class*="NotifItem"] p, [class*="NotifItem"] span, [class*="NotifItem"] div, [class*="NotifItem"] li, [class*="NotifItem"] time,
+[class*="notificationItem"] a, [class*="notificationItem"] p, [class*="notificationItem"] span, [class*="notificationItem"] div, [class*="notificationItem"] li, [class*="notificationItem"] time,
+[class*="notif_"] a, [class*="notif_"] p, [class*="notif_"] span, [class*="notif_"] div, [class*="notif_"] li, [class*="notif_"] time,
+[class*="Notif_"] a, [class*="Notif_"] p, [class*="Notif_"] span, [class*="Notif_"] div, [class*="Notif_"] li, [class*="Notif_"] time,
+[data-testid*="notif"] a, [data-testid*="notif"] p, [data-testid*="notif"] span, [data-testid*="notif"] div, [data-testid*="notif"] li, [data-testid*="notif"] time {
+  font-weight: var(--nnts-font-weight, 600) !important;
+  font-size: var(--nnts-font-size, 14px) !important;
+  color: var(--nnts-text-color, #1a1a1a) !important;
+  line-height: var(--nnts-line-height, 1.6) !important;
+  letter-spacing: var(--nnts-letter-spacing, 0.02em) !important;
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
   text-rendering: auto !important;

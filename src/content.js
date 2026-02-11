@@ -18,11 +18,13 @@
     '[class*="navbarNotif"],[class*="NotifButton"]';
 
   let currentSettings = Object.assign({}, DEFAULTS);
+  let settingsLoaded = false;
   let rafId = 0;
+  let cssCheckInterval = null;
+  let lastUrl = location.href;
 
-  /**
-   * Apply CSS custom properties to :root
-   */
+  // ── CSS Variables ──────────────────────────────────────────
+
   function applyCSSVariables(settings) {
     const root = document.documentElement;
     if (!settings.enabled) {
@@ -36,20 +38,25 @@
     root.style.setProperty("--nnts-text-color", settings.textColor);
   }
 
-  /**
-   * Apply inline styles to a single element (highest cascade priority)
-   */
+  function ensureCSSVariables() {
+    if (!settingsLoaded || !currentSettings.enabled) return;
+    const root = document.documentElement;
+    const current = root.style.getPropertyValue("--nnts-font-weight");
+    if (!current || current !== String(currentSettings.fontWeight)) {
+      applyCSSVariables(currentSettings);
+    }
+  }
+
+  // ── Inline Styles ─────────────────────────────────────────
+
   function applyInline(el) {
     el.style.setProperty("font-weight", String(currentSettings.fontWeight), "important");
     el.style.setProperty("font-size", currentSettings.fontSize + "px", "important");
     el.style.setProperty("color", currentSettings.textColor, "important");
   }
 
-  /**
-   * Scan and style all notification elements + their child text nodes
-   */
   function styleAll() {
-    if (!currentSettings.enabled) return;
+    if (!settingsLoaded || !currentSettings.enabled) return;
     var els = document.querySelectorAll(SELECTOR);
     for (var i = 0; i < els.length; i++) {
       applyInline(els[i]);
@@ -60,9 +67,21 @@
     }
   }
 
-  /**
-   * Schedule styleAll via requestAnimationFrame (batched, max once per frame)
-   */
+  function removeAllInlineStyles() {
+    var els = document.querySelectorAll(SELECTOR);
+    for (var i = 0; i < els.length; i++) {
+      els[i].style.removeProperty("font-weight");
+      els[i].style.removeProperty("font-size");
+      els[i].style.removeProperty("color");
+      var children = els[i].querySelectorAll("a,p,span");
+      for (var j = 0; j < children.length; j++) {
+        children[j].style.removeProperty("font-weight");
+        children[j].style.removeProperty("font-size");
+        children[j].style.removeProperty("color");
+      }
+    }
+  }
+
   function scheduleStyle() {
     if (rafId) return;
     rafId = requestAnimationFrame(function () {
@@ -71,26 +90,31 @@
     });
   }
 
-  /**
-   * Quick check if a node is notification-related (lightweight)
-   */
-  function isNotifNode(node) {
+  // ── MutationObserver ──────────────────────────────────────
+
+  function containsNotifNode(node) {
     if (node.nodeType !== 1) return false;
     var cn = node.className;
-    if (typeof cn === "string" && (cn.indexOf("otif") !== -1 || cn.indexOf("Notif") !== -1)) return true;
+    if (typeof cn === "string" && (cn.indexOf("otif") !== -1 || cn.indexOf("Notif") !== -1)) {
+      return true;
+    }
+    try {
+      if (node.querySelector && node.querySelector(SELECTOR)) {
+        return true;
+      }
+    } catch (e) {
+      // ignore
+    }
     return false;
   }
 
-  /**
-   * MutationObserver callback - childList only, no attributes
-   */
   var observer = new MutationObserver(function (mutations) {
-    if (!currentSettings.enabled) return;
+    if (!settingsLoaded || !currentSettings.enabled) return;
     for (var i = 0; i < mutations.length; i++) {
       var added = mutations[i].addedNodes;
       if (!added || added.length === 0) continue;
       for (var j = 0; j < added.length; j++) {
-        if (isNotifNode(added[j])) {
+        if (containsNotifNode(added[j])) {
           scheduleStyle();
           return;
         }
@@ -98,25 +122,57 @@
     }
   });
 
-  /**
-   * Initialize
-   */
-  function init() {
-    chrome.storage.sync.get(DEFAULTS, function (items) {
-      currentSettings = items;
-      applyCSSVariables(currentSettings);
-      if (currentSettings.enabled) styleAll();
-    });
+  // ── SPA Navigation Detection ──────────────────────────────
 
-    observer.observe(document.body || document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
+  function onNavigation() {
+    if (location.href === lastUrl) return;
+    lastUrl = location.href;
+    if (!settingsLoaded) return;
+    applyCSSVariables(currentSettings);
+    scheduleStyle();
   }
 
-  /**
-   * Listen for settings changes
-   */
+  function patchHistoryMethod(method) {
+    var original = history[method];
+    history[method] = function () {
+      var result = original.apply(this, arguments);
+      onNavigation();
+      return result;
+    };
+  }
+
+  patchHistoryMethod("pushState");
+  patchHistoryMethod("replaceState");
+  window.addEventListener("popstate", onNavigation);
+
+  // ── Visibility Change ─────────────────────────────────────
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") {
+      if (!settingsLoaded) return;
+      ensureCSSVariables();
+      scheduleStyle();
+    }
+  });
+
+  // ── Periodic CSS Variable Check (fallback, every 5s) ──────
+
+  function startCSSCheck() {
+    if (cssCheckInterval) return;
+    cssCheckInterval = setInterval(function () {
+      ensureCSSVariables();
+    }, 5000);
+  }
+
+  function stopCSSCheck() {
+    if (cssCheckInterval) {
+      clearInterval(cssCheckInterval);
+      cssCheckInterval = null;
+    }
+  }
+
+  // ── Settings Listener ─────────────────────────────────────
+
   chrome.storage.onChanged.addListener(function (changes, areaName) {
     if (areaName !== "sync") return;
     var updated = false;
@@ -131,24 +187,32 @@
     applyCSSVariables(currentSettings);
     if (currentSettings.enabled) {
       styleAll();
+      startCSSCheck();
     } else {
-      // Remove inline styles
-      var els = document.querySelectorAll(SELECTOR);
-      for (var i = 0; i < els.length; i++) {
-        els[i].style.removeProperty("font-weight");
-        els[i].style.removeProperty("font-size");
-        els[i].style.removeProperty("color");
-        var children = els[i].querySelectorAll("a,p,span");
-        for (var j = 0; j < children.length; j++) {
-          children[j].style.removeProperty("font-weight");
-          children[j].style.removeProperty("font-size");
-          children[j].style.removeProperty("color");
-        }
-      }
+      removeAllInlineStyles();
+      stopCSSCheck();
     }
   });
 
-  // Run
+  // ── Initialize ────────────────────────────────────────────
+
+  function init() {
+    chrome.storage.sync.get(DEFAULTS, function (items) {
+      currentSettings = items;
+      settingsLoaded = true;
+      applyCSSVariables(currentSettings);
+      if (currentSettings.enabled) {
+        styleAll();
+        startCSSCheck();
+      }
+    });
+
+    observer.observe(document.body || document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+  }
+
   if (document.body) {
     init();
   } else {
