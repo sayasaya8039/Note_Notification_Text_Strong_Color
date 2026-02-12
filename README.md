@@ -1,6 +1,6 @@
 # Note通知テキスト強調カラー
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
 ![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 
@@ -25,6 +25,7 @@ note.comの通知パネルはデフォルトではテキストが薄く読みづ
 | フォント太さ調整 | 400〜900の範囲でスライダー操作（デフォルト: 600） |
 | フォントサイズ調整 | 12〜20pxの範囲でスライダー操作（デフォルト: 14px） |
 | テキストカラー変更 | カラーピッカーで任意の色を選択（デフォルト: #1a1a1a） |
+| 新しいタブで開くボタン | 各通知の下に「新しいタブで開く」リンクを自動追加 |
 | 有効/無効トグル | ワンクリックで拡張機能のON/OFFを切り替え |
 | リアルタイムプレビュー | ポップアップ内でスタイル変更を即座に確認 |
 | ダークモード対応 | OSのテーマ設定に連動したポップアップUI |
@@ -70,9 +71,14 @@ npm run build
    - **フォント太さ**: スライダーを左右に動かして太さを変更（400=細い、900=太い）
    - **フォントサイズ**: スライダーを左右に動かしてサイズを変更（12px〜20px）
    - **テキストカラー**: カラーピッカーをクリックして色を選択
+   - **新しいタブで開くボタン**: トグルでON/OFF切り替え
 4. プレビューエリアで変更内容をリアルタイムに確認できます。
 5. 設定は自動的に保存され、次回以降も反映されます。
 6. 通知ベルをクリックすると、カスタマイズされたスタイルで通知が表示されます。
+
+### 新しいタブで開く機能
+
+通知パネル内の各通知アイテムの下に「新しいタブで開く」リンクが自動で追加されます。このリンクをクリックすると、通知先のページが新しいタブで開きます。通知パネルを閉じずに複数の通知を確認したい場合に便利です。
 
 ### 拡張機能の無効化
 
@@ -91,6 +97,11 @@ npm run build
 ```
 [ポップアップUI] <--> [chrome.storage.sync] <--> [Content Script]
     popup.js              設定の永続化           content.js + content.css
+                                                      |
+                                                      v
+                                               [Background SW]
+                                                background.js
+                                              (新しいタブを開く)
 ```
 
 ### スタイル適用の仕組み
@@ -101,33 +112,22 @@ npm run build
 
 3. **属性セレクタの活用**: note.comはSvelteベースのため、クラス名にハッシュが付与されます。`[class*="notifItem"]` のような部分一致セレクタで、ハッシュ付きクラスにも確実にマッチします。
 
+### 新しいタブで開く機能の実装
+
+note.comの通知アイテムは透明な `<a>` オーバーレイ（`m-navbarNoticeItem__link`）で全体が覆われているため、通常の方法では新しいタブを開くことができません。この拡張機能では以下の方式で実装しています。
+
+1. **オーバーレイリンクの直接検出**: `a[class*="navbarNoticeItem__link"]` セレクタでnote.comの通知オーバーレイリンクを特定
+2. **sibling挿入**: `insertAdjacentElement("afterend")` で各通知アイテムの**直後**にボタンを配置
+3. **windowキャプチャフェーズ**: イベント伝播の最上位（`window`のcapture phase）でクリックを処理し、note.comのイベントハンドラより先に動作
+4. **Background Service Worker**: `chrome.tabs.create()` APIで確実に新しいタブを開く（ポップアップブロッカーの影響を受けない）
+
 ### MutationObserverによる動的対応
 
-note.comの通知パネルは、ベルアイコンのクリック時に動的にDOMが生成されます。MutationObserverで `childList` と `attributes` の変更を監視し、新しい通知要素が追加された際に自動的にスタイルを適用します。
-
-```javascript
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-  attributes: true,
-  attributeFilter: ["class", "style"],
-});
-```
+note.comの通知パネルは、ベルアイコンのクリック時に動的にDOMが生成されます。MutationObserverで `childList` の変更を監視し、新しい通知要素が追加された際に自動的にスタイルとボタンを適用します。
 
 ### 設定の同期
 
 `chrome.storage.sync` を使用して設定を保存します。ポップアップからの変更は `chrome.storage.onChanged` リスナーで即座にContent Scriptに反映されます。ページのリロードは不要です。
-
-### 対象セレクタ一覧
-
-| セレクタパターン | 対象要素 |
-|-----------------|---------|
-| `[class*="notifPanel"]` / `[class*="NotifPanel"]` | 通知パネルコンテナ |
-| `[class*="notifItem"]` / `[class*="NotifItem"]` | 個別の通知アイテム |
-| `[class*="notifText"]` / `[class*="NotifText"]` | 通知テキスト |
-| `[class*="notifBody"]` / `[class*="NotifBody"]` | 通知本文 |
-| `[class*="notifContent"]` / `[class*="NotifContent"]` | 通知コンテンツ |
-| `[class*="navbarNotif"]` / `[class*="NotifButton"]` | ナビバーの通知ボタン |
 
 ## プロジェクト構成
 
@@ -142,8 +142,9 @@ Note_Notification_Text_Strong_Color/
 │   ├── icon48.png         #   拡張機能管理画面用（48x48）
 │   └── icon128.png        #   Chromeウェブストア用（128x128）
 └── src/                   # ソースコード
+    ├── background.js      #   Background Service Worker（タブ操作）
     ├── content.css        #   通知要素のスタイル定義（CSS変数使用）
-    ├── content.js         #   Content Script（スタイル適用・MutationObserver）
+    ├── content.js         #   Content Script（スタイル適用・ボタン挿入）
     ├── popup.html         #   ポップアップUIのHTML
     ├── popup.css          #   ポップアップUIのスタイル（ダークモード対応）
     └── popup.js           #   ポップアップUIのロジック（設定管理・プレビュー）
@@ -175,22 +176,41 @@ const DEFAULTS = {
   fontWeight: 600,        // フォント太さ
   fontSize: 14,           // フォントサイズ（px）
   textColor: "#1a1a1a",   // テキストカラー
+  newTabButton: true,     // 新しいタブで開くボタン
 };
 ```
-
-### 対象セレクタの追加
-
-note.comのUI変更に合わせてセレクタを追加する場合は、`src/content.js` の `NOTIF_SELECTORS` 配列と `src/content.css` のセレクタを更新してください。
 
 ## 技術スタック
 
 | 技術 | 用途 |
 |------|------|
 | Chrome Extension Manifest V3 | 拡張機能の基盤 |
+| Background Service Worker | 新しいタブを開く（chrome.tabs.create） |
 | Vanilla JavaScript | フレームワーク不使用で軽量動作 |
 | CSS変数 + 属性セレクタ | Svelteのスコープ付きクラスに対応 |
 | MutationObserver API | 動的に生成される通知DOMの監視 |
 | chrome.storage.sync API | デバイス間の設定同期・永続化 |
+
+## 更新履歴
+
+### v1.2.0 (2026-02-13)
+
+- 「新しいタブで開く」ボタン機能を追加
+  - 各通知アイテムの下にリンクを自動配置
+  - Background Service Worker経由で確実にタブを開く
+  - windowキャプチャフェーズでnote.comのイベントより先にクリックを処理
+  - note.comのオーバーレイリンク構造（`m-navbarNoticeItem__link`）に対応
+- ポップアップUIに「新しいタブで開くボタン」ON/OFFトグルを追加
+- Background Service Worker（`background.js`）を新規追加
+
+### v1.0.0 (2026-02-12)
+
+- 初回リリース
+- フォント太さ・サイズ・カラーのカスタマイズ機能
+- リアルタイムプレビュー
+- ダークモード対応ポップアップUI
+- MutationObserverによる動的DOM対応
+- SPA（pushState / replaceState / popstate）対応
 
 ## 動作要件
 

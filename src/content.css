@@ -60,3 +60,38 @@
   -moz-osx-font-smoothing: grayscale !important;
   text-rendering: auto !important;
 }
+
+/* ── New Tab Button ─────────────────────────────────── */
+/* 通知アイテムの直後（下）にsibling要素として挿入される */
+/* 二重クラスで詳細度を上げ、パネル内ルールに勝つ (0,2,0) */
+
+.nnts-new-tab-btn.nnts-new-tab-btn {
+  all: initial !important;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  padding: 4px 16px !important;
+  margin: 0 !important;
+  background: rgba(56, 189, 248, 0.05) !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.15) !important;
+  color: #0EA5E9 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  line-height: 1.4 !important;
+  text-align: right !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  pointer-events: auto !important;
+}
+
+.nnts-new-tab-btn.nnts-new-tab-btn:hover {
+  background: rgba(56, 189, 248, 0.12) !important;
+  text-decoration: underline !important;
+}

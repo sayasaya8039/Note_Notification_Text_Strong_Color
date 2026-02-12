@@ -4,7 +4,8 @@ const DEFAULTS = {
   enabled: true,
   fontWeight: 600,
   fontSize: 14,
-  textColor: '#1a1a1a'
+  textColor: '#1a1a1a',
+  newTabButton: true
 };
 
 function debounce(fn, delay) {
@@ -17,6 +18,7 @@ function debounce(fn, delay) {
 
 document.addEventListener('DOMContentLoaded', () => {
   const toggleEnabled = document.getElementById('toggle-enabled');
+  const toggleNewTabButton = document.getElementById('toggle-newTabButton');
   const fontWeightSlider = document.getElementById('fontWeight');
   const fontWeightValue = document.getElementById('fontWeight-value');
   const fontSizeSlider = document.getElementById('fontSize');
@@ -42,7 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
       enabled: toggleEnabled.checked,
       fontWeight: parseInt(fontWeightSlider.value, 10),
       fontSize: parseInt(fontSizeSlider.value, 10),
-      textColor: textColorPicker.value
+      textColor: textColorPicker.value,
+      newTabButton: toggleNewTabButton.checked
     };
   }
 
@@ -77,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       toggleEnabled.checked = settings.enabled;
+      toggleNewTabButton.checked = settings.newTabButton;
       fontWeightSlider.value = settings.fontWeight;
       fontWeightValue.textContent = settings.fontWeight;
       fontSizeSlider.value = settings.fontSize;
@@ -97,6 +101,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // イベントリスナー設定
   toggleEnabled.addEventListener('change', () => {
+    saveToStorage();
+  });
+
+  toggleNewTabButton.addEventListener('change', () => {
     saveToStorage();
   });
 
