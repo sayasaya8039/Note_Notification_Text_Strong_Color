@@ -1,14 +1,18 @@
 // Note Notification Text Strong Color - Background Service Worker
-
-var openerMap = new Map();
+// Service Worker はスリープするため、chrome.storage.session で永続化する
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.type === "openNewTab" && message.url && sender.tab) {
+    var originalTabId = sender.tab.id;
     chrome.tabs.create(
-      { url: message.url, openerTabId: sender.tab.id },
+      { url: message.url, openerTabId: originalTabId },
       function (newTab) {
         if (newTab && newTab.id) {
-          openerMap.set(newTab.id, sender.tab.id);
+          chrome.storage.session.get({ openerMap: {} }, function (data) {
+            var map = data.openerMap || {};
+            map[String(newTab.id)] = originalTabId;
+            chrome.storage.session.set({ openerMap: map });
+          });
         }
       }
     );
@@ -16,9 +20,14 @@ chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
 });
 
 chrome.tabs.onRemoved.addListener(function (tabId) {
-  var originalTabId = openerMap.get(tabId);
-  if (originalTabId != null) {
-    openerMap.delete(tabId);
-    chrome.tabs.update(originalTabId, { active: true }).catch(function () {});
-  }
+  chrome.storage.session.get({ openerMap: {} }, function (data) {
+    var map = data.openerMap || {};
+    var key = String(tabId);
+    var originalTabId = map[key];
+    if (originalTabId != null) {
+      delete map[key];
+      chrome.storage.session.set({ openerMap: map });
+      chrome.tabs.update(originalTabId, { active: true }).catch(function () {});
+    }
+  });
 });
