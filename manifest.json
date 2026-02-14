@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Note通知テキスト強調カラー",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "note.comの通知ドロップダウンのテキストを見やすくする拡張機能",
   "permissions": ["storage"],
   "host_permissions": ["https://note.com/*"],

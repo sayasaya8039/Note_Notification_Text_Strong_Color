@@ -2,6 +2,6 @@
 
 chrome.runtime.onMessage.addListener(function (message, sender, sendResponse) {
   if (message.type === "openNewTab" && message.url) {
-    chrome.tabs.create({ url: message.url });
+    chrome.tabs.create({ url: message.url, openerTabId: sender.tab.id });
   }
 });
