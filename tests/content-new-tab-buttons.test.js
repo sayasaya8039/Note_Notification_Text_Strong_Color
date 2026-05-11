@@ -191,6 +191,7 @@ function makeElement(tagName, options) {
 function createFixture() {
   const body = makeElement('body');
   const panel = makeElement('div', { className: 'm-navbarNoticePanel' });
+  const list = makeElement('div', { className: 'm-navbarNoticeItemList' });
 
   const validItem = makeElement('div', { className: 'm-navbarNoticeItem' });
   validItem.appendChild(makeElement('a', {
@@ -215,12 +216,13 @@ function createFixture() {
     text: '\u21D7 \u65B0\u3057\u3044\u30BF\u30D6\u3067\u958B\u304F',
   });
 
-  panel.appendChild(orphanButton);
-  panel.appendChild(emptyItem);
-  panel.appendChild(validItem);
+  list.appendChild(orphanButton);
+  list.appendChild(emptyItem);
+  list.appendChild(validItem);
+  panel.appendChild(list);
   body.appendChild(panel);
 
-  return { body, panel, validItem, emptyItem, orphanButton };
+  return { body, panel, list, validItem, emptyItem, orphanButton };
 }
 
 function runContentScript(fixture) {

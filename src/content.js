@@ -105,6 +105,10 @@
     return (el && typeof el.className === "string") ? el.className : "";
   }
 
+  function getNormalizedClassName(el) {
+    return getClassName(el).toLowerCase();
+  }
+
   function isSafeNoteUrl(href) {
     try {
       var url = new URL(href, location.href);
@@ -117,16 +121,28 @@
 
   function isNoticeItemElement(el) {
     if (!el || el.tagName === "A") return false;
-    var cn = getClassName(el);
+    var cn = getNormalizedClassName(el);
     if (cn.indexOf("__link") !== -1) return false;
-    return cn.indexOf("navbarNoticeItem") !== -1 ||
-      cn.indexOf("NavbarNoticeItem") !== -1 ||
-      cn.indexOf("noticeItem") !== -1 ||
-      cn.indexOf("NoticeItem") !== -1 ||
-      cn.indexOf("notificationItem") !== -1 ||
-      cn.indexOf("NotificationItem") !== -1 ||
-      cn.indexOf("notifItem") !== -1 ||
-      cn.indexOf("NotifItem") !== -1;
+    if (isNoticeContainerElement(el)) {
+      return false;
+    }
+    return cn.indexOf("navbarnoticeitem") !== -1 ||
+      cn.indexOf("noticeitem") !== -1 ||
+      cn.indexOf("notificationitem") !== -1 ||
+      cn.indexOf("notifitem") !== -1;
+  }
+
+  function isNoticeContainerElement(el) {
+    var cn = getNormalizedClassName(el);
+    return cn.indexOf("list") !== -1 ||
+      cn.indexOf("panel") !== -1 ||
+      cn.indexOf("tabs") !== -1 ||
+      cn.indexOf("tab") !== -1 ||
+      cn.indexOf("header") !== -1 ||
+      cn.indexOf("footer") !== -1 ||
+      cn.indexOf("container") !== -1 ||
+      cn.indexOf("wrapper") !== -1 ||
+      cn.indexOf("scroll") !== -1;
   }
 
   function hasNoticeText(el) {
@@ -144,11 +160,25 @@
     }
   }
 
+  function hasOneOverlayOnly(el) {
+    try {
+      return el.querySelectorAll('a[class*="navbarNoticeItem__link"][href]').length === 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isValidNoticeItemForButton(el) {
+    if (!el || el.tagName === "BODY" || el.tagName === "HTML") return false;
+    if (isNoticeContainerElement(el)) return false;
+    if (!hasOneOverlayOnly(el) || !hasNoticeText(el)) return false;
+    return isNoticeItemElement(el) || hasSingleOverlay(el);
+  }
+
   function findNoticeItemFromOverlay(overlay) {
     var el = overlay ? overlay.parentElement : null;
     for (var depth = 0; el && depth < 8; depth++) {
-      if (isNoticeItemElement(el) && hasNoticeText(el)) return el;
-      if (hasSingleOverlay(el) && hasNoticeText(el)) return el;
+      if (isValidNoticeItemForButton(el)) return el;
       el = el.parentElement;
     }
     return null;
@@ -193,8 +223,14 @@
   function cleanupDetachedNewTabButtons() {
     var btns = document.querySelectorAll("." + NEW_TAB_BTN_CLASS);
     for (var i = 0; i < btns.length; i++) {
-      if (!findNoticeItemFromOverlay(btns[i])) {
+      if (!isValidNoticeItemForButton(btns[i].parentElement)) {
         btns[i].remove();
+      }
+    }
+    var marked = document.querySelectorAll("[" + NEW_TAB_ADDED_ATTR + "]");
+    for (var j = 0; j < marked.length; j++) {
+      if (!isValidNoticeItemForButton(marked[j])) {
+        marked[j].removeAttribute(NEW_TAB_ADDED_ATTR);
       }
     }
   }
