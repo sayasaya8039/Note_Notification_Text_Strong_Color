@@ -204,10 +204,20 @@ function createFixture() {
     href: 'https://note.com/example/n/n123',
     text: '\u00a0',
   }));
-  validItem.appendChild(makeElement('div', {
-    className: 'm-navbarNoticeItem__body',
-    text: '書籍化・映像化のチャンス！募集開始！',
+  const validBody = makeElement('div', { className: 'm-navbarNoticeItem__body' });
+  validBody.appendChild(makeElement('span', {
+    className: 'm-navbarNoticeItem__user',
+    text: 'Hiroyuki',
   }));
+  validBody.appendChild(makeElement('span', {
+    className: 'm-navbarNoticeItem__message',
+    text: 'さんがあなたの記事にスキしました',
+  }));
+  validBody.appendChild(makeElement('div', {
+    className: 'm-navbarNoticeItem__summary',
+    text: '17分の1は本当？Claude CodeをDeepSeek V4 Pr...',
+  }));
+  validItem.appendChild(validBody);
 
   const emptyItem = makeElement('div', { className: 'm-navbarNoticePlaceholder' });
   emptyItem.appendChild(makeElement('a', {
@@ -227,7 +237,7 @@ function createFixture() {
   panel.appendChild(list);
   body.appendChild(panel);
 
-  return { body, panel, list, validItem, emptyItem, orphanButton };
+  return { body, panel, list, validItem, validBody, emptyItem, orphanButton };
 }
 
 function runContentScript(fixture) {
@@ -320,6 +330,12 @@ assert.equal(
   button.parentElement.getAttribute('data-nnts-new-tab-host'),
   'true',
   'ボタンは本文ホスト内に配置される',
+);
+assert.equal(button.parentElement, fixture.validBody, 'ボタンは本文の途中ではなく本文ブロック末尾に配置される');
+assert.equal(
+  fixture.validBody.children[fixture.validBody.children.length - 1],
+  button,
+  'ボタンは本文ブロックの最後の子として配置される',
 );
 assert.equal(button.getAttribute('data-href'), 'https://note.com/example/n/n123');
 

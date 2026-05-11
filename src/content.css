@@ -67,7 +67,7 @@
 
 .nnts-new-tab-btn.nnts-new-tab-btn {
   all: initial !important;
-  display: inline-block !important;
+  display: block !important;
   width: max-content !important;
   max-width: 100% !important;
   height: auto !important;

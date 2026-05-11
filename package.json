@@ -1,6 +1,6 @@
 {
   "name": "note-notification-text-strong-color",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "note.comの通知ドロップダウンのテキストを見やすくする拡張機能",
   "private": true,
   "scripts": {

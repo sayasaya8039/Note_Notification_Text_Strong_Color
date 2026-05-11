@@ -201,14 +201,14 @@
     return hasNoticeText(el);
   }
 
-  function findDeepTextHost(root) {
+  function findTextHost(root) {
     if (!root || !root.children) return null;
     for (var i = 0; i < root.children.length; i++) {
       var child = root.children[i];
       if (!child || child.tagName === "A") continue;
-      var nested = findDeepTextHost(child);
-      if (nested) return nested;
       if (isButtonHostCandidate(child)) return child;
+      var nested = findTextHost(child);
+      if (nested) return nested;
     }
     return null;
   }
@@ -216,7 +216,7 @@
   function findButtonHost(item) {
     var previousHost = item.querySelector("[" + NEW_TAB_HOST_ATTR + "]");
     if (previousHost && isButtonHostCandidate(previousHost)) return previousHost;
-    return findDeepTextHost(item) || item;
+    return findTextHost(item) || item;
   }
 
   function createNewTabLink(href) {
