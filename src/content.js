@@ -99,6 +99,7 @@
 
   var NEW_TAB_BTN_CLASS = "nnts-new-tab-btn";
   var NEW_TAB_ADDED_ATTR = "data-nnts-new-tab-added";
+  var NEW_TAB_HOST_ATTR = "data-nnts-new-tab-host";
   var newTabScanInterval = null;
 
   function getClassName(el) {
@@ -184,6 +185,40 @@
     return null;
   }
 
+  function findNoticeItemFromButton(btn) {
+    var el = btn ? btn.parentElement : null;
+    for (var depth = 0; el && depth < 8; depth++) {
+      if (isValidNoticeItemForButton(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function isButtonHostCandidate(el) {
+    if (!el || el.tagName === "A") return false;
+    if (el.classList && el.classList.contains(NEW_TAB_BTN_CLASS)) return false;
+    if (hasOneOverlayOnly(el)) return false;
+    return hasNoticeText(el);
+  }
+
+  function findDeepTextHost(root) {
+    if (!root || !root.children) return null;
+    for (var i = 0; i < root.children.length; i++) {
+      var child = root.children[i];
+      if (!child || child.tagName === "A") continue;
+      var nested = findDeepTextHost(child);
+      if (nested) return nested;
+      if (isButtonHostCandidate(child)) return child;
+    }
+    return null;
+  }
+
+  function findButtonHost(item) {
+    var previousHost = item.querySelector("[" + NEW_TAB_HOST_ATTR + "]");
+    if (previousHost && isButtonHostCandidate(previousHost)) return previousHost;
+    return findDeepTextHost(item) || item;
+  }
+
   function createNewTabLink(href) {
     var span = document.createElement("span");
     span.className = NEW_TAB_BTN_CLASS;
@@ -199,17 +234,54 @@
     var target = e.target;
     return target.closest ? target.closest("." + NEW_TAB_BTN_CLASS) : null;
   }
-  function onPointerDown(e) {
-    var btn = findNewTabBtn(e);
-    if (!btn) return;
+
+  function findNewTabBtnFromPoint(e) {
+    if (typeof e.clientX !== "number" || typeof e.clientY !== "number") return null;
+    var btns = document.querySelectorAll("." + NEW_TAB_BTN_CLASS);
+    for (var i = 0; i < btns.length; i++) {
+      var rect = btns[i].getBoundingClientRect ? btns[i].getBoundingClientRect() : null;
+      if (!rect) continue;
+      if (
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom
+      ) {
+        return btns[i];
+      }
+    }
+    return null;
+  }
+
+  function getNewTabBtnFromEvent(e) {
+    return findNewTabBtn(e) || findNewTabBtnFromPoint(e);
+  }
+
+  function openNewTabFromButton(btn) {
     var href = btn.getAttribute("data-href");
-    if (!href) return;
+    if (!href || !isSafeNoteUrl(href)) return false;
+    chrome.runtime.sendMessage({ type: "openNewTab", url: href });
+    return true;
+  }
+
+  function onPointerDown(e) {
+    var btn = getNewTabBtnFromEvent(e);
+    if (!btn) return;
+    if (!openNewTabFromButton(btn)) return;
+    e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
-    chrome.runtime.sendMessage({ type: "openNewTab", url: href });
   }
   function blockIfBtn(e) {
-    if (!findNewTabBtn(e)) return;
+    if (!getNewTabBtnFromEvent(e)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+  }
+  function onKeyDown(e) {
+    var btn = findNewTabBtn(e);
+    if (!btn || (e.key !== "Enter" && e.key !== " ")) return;
+    if (!openNewTabFromButton(btn)) return;
     e.preventDefault();
     e.stopPropagation();
     e.stopImmediatePropagation();
@@ -219,11 +291,12 @@
   window.addEventListener("mouseup", blockIfBtn, true);
   window.addEventListener("pointerup", blockIfBtn, true);
   window.addEventListener("click", blockIfBtn, true);
+  window.addEventListener("keydown", onKeyDown, true);
 
   function cleanupDetachedNewTabButtons() {
     var btns = document.querySelectorAll("." + NEW_TAB_BTN_CLASS);
     for (var i = 0; i < btns.length; i++) {
-      if (!isValidNoticeItemForButton(btns[i].parentElement)) {
+      if (!findNoticeItemFromButton(btns[i])) {
         btns[i].remove();
       }
     }
@@ -256,18 +329,24 @@
       var item = findNoticeItemFromOverlay(overlay);
       if (!item) continue;
 
+      var host = findButtonHost(item);
       var existing = item.querySelector("." + NEW_TAB_BTN_CLASS);
       if (existing) {
         if (existing.getAttribute("data-href") !== href) {
           existing.setAttribute("data-href", href);
         }
+        if (existing.parentElement !== host) {
+          host.appendChild(existing);
+        }
+        host.setAttribute(NEW_TAB_HOST_ATTR, "true");
         item.setAttribute(NEW_TAB_ADDED_ATTR, "true");
         continue;
       }
       if (item.getAttribute(NEW_TAB_ADDED_ATTR) === "true") continue;
 
-      // お知らせ/通知アイテム内に閉じて挿入し、パネル上部への孤立表示を防ぐ。
-      item.appendChild(createNewTabLink(href));
+      // 本文ブロック内に閉じて挿入し、一覧コンテナ直下やアイテム横への配置崩れを防ぐ。
+      host.appendChild(createNewTabLink(href));
+      host.setAttribute(NEW_TAB_HOST_ATTR, "true");
       item.setAttribute(NEW_TAB_ADDED_ATTR, "true");
     }
   }
@@ -280,6 +359,10 @@
     var items = document.querySelectorAll("[" + NEW_TAB_ADDED_ATTR + "]");
     for (var j = 0; j < items.length; j++) {
       items[j].removeAttribute(NEW_TAB_ADDED_ATTR);
+    }
+    var hosts = document.querySelectorAll("[" + NEW_TAB_HOST_ATTR + "]");
+    for (var k = 0; k < hosts.length; k++) {
+      hosts[k].removeAttribute(NEW_TAB_HOST_ATTR);
     }
   }
 

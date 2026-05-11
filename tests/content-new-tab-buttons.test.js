@@ -34,6 +34,7 @@ class FakeElement {
     this.children = [];
     this.parentElement = null;
     this.style = new FakeStyle();
+    this.rect = options.rect || { left: 100, top: 100, right: 220, bottom: 124 };
   }
 
   get classList() {
@@ -100,6 +101,10 @@ class FakeElement {
   }
 
   addEventListener() {}
+
+  getBoundingClientRect() {
+    return this.rect;
+  }
 
   querySelector(selector) {
     return this.querySelectorAll(selector)[0] || null;
@@ -227,6 +232,8 @@ function createFixture() {
 
 function runContentScript(fixture) {
   const intervals = [];
+  const listeners = {};
+  const messages = [];
   const context = {
     URL,
     console,
@@ -237,11 +244,15 @@ function runContentScript(fixture) {
     },
     document: new FakeDocument(fixture.body),
     window: {
-      addEventListener() {},
+      addEventListener(type, handler) {
+        listeners[type] = handler;
+      },
     },
     chrome: {
       runtime: {
-        sendMessage() {},
+        sendMessage(message) {
+          messages.push(message);
+        },
       },
       storage: {
         sync: {
@@ -276,11 +287,11 @@ function runContentScript(fixture) {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'content.js'), 'utf8');
   vm.runInNewContext(source, context, { filename: 'content.js' });
 
-  return intervals;
+  return { intervals, listeners, messages };
 }
 
 const fixture = createFixture();
-const intervals = runContentScript(fixture);
+const runtime = runContentScript(fixture);
 
 assert.equal(fixture.orphanButton.parentElement, null, '孤立した既存ボタンは削除される');
 assert.equal(
@@ -294,7 +305,7 @@ assert.equal(
   '本文を持たないオーバーレイだけの要素にはボタンを追加しない',
 );
 
-for (const scan of intervals) {
+for (const scan of runtime.intervals) {
   scan();
 }
 
@@ -305,7 +316,59 @@ assert.equal(
 );
 
 const button = fixture.validItem.querySelector('.nnts-new-tab-btn');
-assert.equal(button.parentElement, fixture.validItem, 'ボタンはパネル直下ではなくアイテム内に配置される');
+assert.equal(
+  button.parentElement.getAttribute('data-nnts-new-tab-host'),
+  'true',
+  'ボタンは本文ホスト内に配置される',
+);
 assert.equal(button.getAttribute('data-href'), 'https://note.com/example/n/n123');
+
+const overlay = fixture.validItem.querySelector('a[class*="navbarNoticeItem__link"]');
+runtime.listeners.pointerdown({
+  target: overlay,
+  clientX: 120,
+  clientY: 110,
+  preventDefault() {
+    this.defaultPrevented = true;
+  },
+  stopPropagation() {
+    this.stopped = true;
+  },
+  stopImmediatePropagation() {
+    this.immediateStopped = true;
+  },
+});
+
+const pointerMessage = runtime.messages.pop();
+assert.equal(pointerMessage.type, 'openNewTab', '透明オーバーレイがターゲットでも新規タブ要求を送る');
+assert.equal(
+  pointerMessage.url,
+  'https://note.com/example/n/n123',
+  '透明オーバーレイがターゲットでも座標上のボタンURLで新規タブを開く',
+);
+
+runtime.listeners.keydown({
+  target: button,
+  key: 'Enter',
+  preventDefault() {},
+  stopPropagation() {},
+  stopImmediatePropagation() {},
+});
+
+const keyMessage = runtime.messages.pop();
+assert.equal(keyMessage.type, 'openNewTab', 'キーボード操作でも新規タブ要求を送る');
+assert.equal(keyMessage.url, 'https://note.com/example/n/n123', 'キーボード操作でも新規タブを開く');
+
+runtime.listeners.keydown({
+  target: button,
+  key: ' ',
+  preventDefault() {},
+  stopPropagation() {},
+  stopImmediatePropagation() {},
+});
+
+const spaceMessage = runtime.messages.pop();
+assert.equal(spaceMessage.type, 'openNewTab', 'Spaceキーでも新規タブ要求を送る');
+assert.equal(spaceMessage.url, 'https://note.com/example/n/n123', 'Spaceキーでも新規タブを開く');
 
 console.log('content-new-tab-buttons tests passed');

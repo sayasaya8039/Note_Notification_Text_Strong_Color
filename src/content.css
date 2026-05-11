@@ -67,12 +67,12 @@
 
 .nnts-new-tab-btn.nnts-new-tab-btn {
   all: initial !important;
-  display: block !important;
+  display: inline-block !important;
   width: max-content !important;
   max-width: 100% !important;
   height: auto !important;
   padding: 2px 8px !important;
-  margin: 6px 0 0 auto !important;
+  margin: 4px 0 0 0 !important;
   background: transparent !important;
   border: none !important;
   border-radius: 4px !important;
@@ -88,8 +88,11 @@
   line-height: 1.4 !important;
   text-decoration: none !important;
   box-sizing: border-box !important;
+  flex: 0 0 auto !important;
+  align-self: flex-start !important;
   pointer-events: auto !important;
   white-space: nowrap !important;
+  touch-action: manipulation !important;
 }
 
 .nnts-new-tab-btn.nnts-new-tab-btn:hover {

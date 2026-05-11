@@ -1,6 +1,6 @@
 # Note通知テキスト強調カラー
 
-![Version](https://img.shields.io/badge/version-1.2.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.4-blue.svg)
 ![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 
