@@ -4,6 +4,9 @@ articles/
 CLAUDE.md
 SKILL.md
 node_modules/
+.build/
+*.sync-conflict-*
+note-notification-text-strong-color.zip
 
 # Beads / Dolt files (added by bd init)
 .dolt/

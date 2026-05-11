@@ -1,6 +1,6 @@
 # Note通知テキスト強調カラー
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)
 ![Manifest](https://img.shields.io/badge/Manifest-V3-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-yellow.svg)
 
@@ -114,10 +114,10 @@ npm run build
 
 ### 新しいタブで開く機能の実装
 
-note.comの通知アイテムは透明な `<a>` オーバーレイ（`m-navbarNoticeItem__link`）で全体が覆われているため、通常の方法では新しいタブを開くことができません。この拡張機能では以下の方式で実装しています。
+note.comの通知/お知らせアイテムは透明な `<a>` オーバーレイ（`m-navbarNoticeItem__link`）で全体が覆われているため、通常の方法では新しいタブを開くことができません。この拡張機能では以下の方式で実装しています。
 
 1. **オーバーレイリンクの直接検出**: `a[class*="navbarNoticeItem__link"]` セレクタでnote.comの通知オーバーレイリンクを特定
-2. **sibling挿入**: `insertAdjacentElement("afterend")` で各通知アイテムの**直後**にボタンを配置
+2. **アイテム内挿入**: 本文を持つ通知/お知らせアイテムの内部にボタンを1つだけ配置し、空のオーバーレイやパネル直下には追加しない
 3. **windowキャプチャフェーズ**: イベント伝播の最上位（`window`のcapture phase）でクリックを処理し、note.comのイベントハンドラより先に動作
 4. **Background Service Worker**: `chrome.tabs.create()` APIで確実に新しいタブを開く（ポップアップブロッカーの影響を受けない）
 

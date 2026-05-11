@@ -1,9 +1,10 @@
 {
   "name": "note-notification-text-strong-color",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "note.comの通知ドロップダウンのテキストを見やすくする拡張機能",
   "private": true,
   "scripts": {
-    "build": "zip -r note-notification-text-strong-color.zip manifest.json src/ icons/ -x \"*.DS_Store\""
+    "test": "node tests/content-new-tab-buttons.test.js",
+    "build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build.ps1"
   }
 }

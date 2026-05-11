@@ -94,11 +94,65 @@
   }
 
   // ── New Tab Buttons ─────────────────────────────────────
-  // note.comの通知オーバーレイリンク（m-navbarNoticeItem__link）を直接探し、
-  // その親要素（=通知アイテム）の末尾にボタンを1つだけ追加する。
+  // note.comのお知らせ/通知オーバーレイリンクを探し、実アイテム内にだけ
+  // ボタンを1つ追加する。パネル直下や空リンクには追加しない。
 
   var NEW_TAB_BTN_CLASS = "nnts-new-tab-btn";
+  var NEW_TAB_ADDED_ATTR = "data-nnts-new-tab-added";
   var newTabScanInterval = null;
+
+  function getClassName(el) {
+    return (el && typeof el.className === "string") ? el.className : "";
+  }
+
+  function isSafeNoteUrl(href) {
+    try {
+      var url = new URL(href, location.href);
+      return url.protocol === "https:" &&
+        (url.hostname === "note.com" || url.hostname.slice(-9) === ".note.com");
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function isNoticeItemElement(el) {
+    if (!el || el.tagName === "A") return false;
+    var cn = getClassName(el);
+    if (cn.indexOf("__link") !== -1) return false;
+    return cn.indexOf("navbarNoticeItem") !== -1 ||
+      cn.indexOf("NavbarNoticeItem") !== -1 ||
+      cn.indexOf("noticeItem") !== -1 ||
+      cn.indexOf("NoticeItem") !== -1 ||
+      cn.indexOf("notificationItem") !== -1 ||
+      cn.indexOf("NotificationItem") !== -1 ||
+      cn.indexOf("notifItem") !== -1 ||
+      cn.indexOf("NotifItem") !== -1;
+  }
+
+  function hasNoticeText(el) {
+    var text = (el.textContent || "")
+      .replace(/\u21D7\s*\u65B0\u3057\u3044\u30BF\u30D6\u3067\u958B\u304F/g, "")
+      .replace(/\s+/g, "");
+    return text.length > 0;
+  }
+
+  function hasSingleOverlay(el) {
+    try {
+      return el.querySelectorAll('a[class*="navbarNoticeItem__link"]').length === 1;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function findNoticeItemFromOverlay(overlay) {
+    var el = overlay ? overlay.parentElement : null;
+    for (var depth = 0; el && depth < 8; depth++) {
+      if (isNoticeItemElement(el) && hasNoticeText(el)) return el;
+      if (hasSingleOverlay(el) && hasNoticeText(el)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
 
   function createNewTabLink(href) {
     var span = document.createElement("span");
@@ -136,8 +190,18 @@
   window.addEventListener("pointerup", blockIfBtn, true);
   window.addEventListener("click", blockIfBtn, true);
 
+  function cleanupDetachedNewTabButtons() {
+    var btns = document.querySelectorAll("." + NEW_TAB_BTN_CLASS);
+    for (var i = 0; i < btns.length; i++) {
+      if (!findNoticeItemFromOverlay(btns[i])) {
+        btns[i].remove();
+      }
+    }
+  }
+
   function addNewTabButtons() {
     if (!settingsLoaded || !currentSettings.newTabButton) return;
+    cleanupDetachedNewTabButtons();
 
     // note.comの実際の構造:
     // <div class="m-navbarNoticeItem ...">        ← 通知アイテム(親)
@@ -145,23 +209,30 @@
     //   <div>... 通知コンテンツ ...</div>
     // </div>
     //
-    // この <a> オーバーレイを見つけ、その親をアイテムとして扱う。
+    // この <a> オーバーレイを見つけ、本文を持つ最小の祖先をアイテムとして扱う。
 
-    var overlays = document.querySelectorAll('a[class*="navbarNoticeItem__link"]');
+    var overlays = document.querySelectorAll('a[class*="navbarNoticeItem__link"][href]');
     for (var i = 0; i < overlays.length; i++) {
       var overlay = overlays[i];
       var href = overlay.href;
-      if (!href || href === "#") continue;
+      if (!href || href === "#" || !isSafeNoteUrl(href)) continue;
 
-      var item = overlay.parentElement;
+      var item = findNoticeItemFromOverlay(overlay);
       if (!item) continue;
 
-      // 既にボタンがあればスキップ（アイテムの直後のsiblingをチェック）
-      var next = item.nextElementSibling;
-      if (next && next.classList.contains(NEW_TAB_BTN_CLASS)) continue;
+      var existing = item.querySelector("." + NEW_TAB_BTN_CLASS);
+      if (existing) {
+        if (existing.getAttribute("data-href") !== href) {
+          existing.setAttribute("data-href", href);
+        }
+        item.setAttribute(NEW_TAB_ADDED_ATTR, "true");
+        continue;
+      }
+      if (item.getAttribute(NEW_TAB_ADDED_ATTR) === "true") continue;
 
-      // 通知アイテムの直後（下）に挿入
-      item.insertAdjacentElement("afterend", createNewTabLink(href));
+      // お知らせ/通知アイテム内に閉じて挿入し、パネル上部への孤立表示を防ぐ。
+      item.appendChild(createNewTabLink(href));
+      item.setAttribute(NEW_TAB_ADDED_ATTR, "true");
     }
   }
 
@@ -169,6 +240,10 @@
     var btns = document.querySelectorAll("." + NEW_TAB_BTN_CLASS);
     for (var i = 0; i < btns.length; i++) {
       btns[i].remove();
+    }
+    var items = document.querySelectorAll("[" + NEW_TAB_ADDED_ATTR + "]");
+    for (var j = 0; j < items.length; j++) {
+      items[j].removeAttribute(NEW_TAB_ADDED_ATTR);
     }
   }
 
